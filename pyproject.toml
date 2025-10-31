@@ -1,5 +1,5 @@
 [project]
-name = "gitrack"
+name = "gitdo"
 version = "0.1.0"
 description = "Simple CLI tool to plan your work"
 readme = "README.md"
@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 authors = [
     { name = "Your Name", email = "your.email@example.com" }
 ]
-keywords = ["cli", "task", "planning", "productivity"]
+keywords = ["cli", "task", "planning", "productivity", "git"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -29,18 +29,18 @@ dev = [
 ]
 
 [project.scripts]
-gitrack = "gitrack.cli:main"
+gitdo = "gitdo.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/gitrack"
-Repository = "https://github.com/yourusername/gitrack"
+Homepage = "https://github.com/s0b0lev/gitdo"
+Repository = "https://github.com/s0b0lev/gitdo"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/gitrack"]
+packages = ["src/gitdo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -49,7 +49,7 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
     "--verbose",
-    "--cov=gitrack",
+    "--cov=gitdo",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]

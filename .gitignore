@@ -49,8 +49,11 @@ htmlcov/
 # Ruff
 .ruff_cache/
 
-# GiTrack data
-.gitracker/
+# GitDo data
+.gitdo/
 
 # Distribution
 *.whl
+
+# Backup files
+*.bak

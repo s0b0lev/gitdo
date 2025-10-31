@@ -1,26 +1,26 @@
-# GiTrack
+# GitDo
 
-[![CI](https://github.com/yourusername/gitrack/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/gitrack/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/yourusername/gitrack/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/gitrack)
-[![PyPI version](https://badge.fury.io/py/gitrack.svg)](https://badge.fury.io/py/gitrack)
+[![CI](https://github.com/s0b0lev/gitdo/actions/workflows/ci.yml/badge.svg)](https://github.com/s0b0lev/gitdo/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/s0b0lev/gitdo/branch/main/graph/badge.svg)](https://codecov.io/gh/s0b0lev/gitdo)
+[![PyPI version](https://badge.fury.io/py/gitdo.svg)](https://badge.fury.io/py/gitdo)
 
-Simple CLI tool to plan your work. Tasks are stored locally in a `.gitracker/` folder.
+Simple CLI tool to plan your work. Tasks are stored locally in a `.gitdo/` folder.
 
 ## Installation
 
 ```bash
-pip install gitrack
+pip install gitdo
 ```
 
 ## Usage
 
 ```bash
-$ gitrack [command] [options]
+$ gitdo [command] [options]
 ```
 
 ## Commands
 
-- `init`: Initialize a new GiTrack project
+- `init`: Initialize a new GitDo project
 - `add <task>`: Add a new task to your project
 - `list`: List all tasks (use `--all` to show completed tasks)
 - `complete <task_id>`: Mark a task as completed
@@ -29,54 +29,68 @@ $ gitrack [command] [options]
 ## Example
 
 ```bash
-# Initialize GiTrack in your project
-$ gitrack init
-✓ GiTrack initialized successfully!
+# Initialize GitDo in your project
+$ gitdo init
+✓ GitDo initialized successfully!
 
 # Add some tasks
-$ gitrack add "Implement user authentication"
+$ gitdo add "Implement user authentication"
 ✓ Added task: Implement user authentication
 ID: a1b2c3d4
 
-$ gitrack add "Write unit tests"
+$ gitdo add "Write unit tests"
 ✓ Added task: Write unit tests
 ID: e5f6g7h8
 
 # List all pending tasks
-$ gitrack list
+$ gitdo list
 
 # Complete a task (you can use just the first few characters of the ID)
-$ gitrack complete a1b2
+$ gitdo complete a1b2
 
 # List all tasks including completed ones
-$ gitrack list --all
+$ gitdo list --all
 
 # Remove a task
-$ gitrack remove e5f6
+$ gitdo remove e5f6
 ```
 
 ## Development
 
 ### Setup
 
-1. Clone the repository
-2. Install development dependencies:
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
-```bash
-pip install -e ".[dev]"
-```
+1. Install uv:
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/gitdo.git
+   cd gitdo
+   ```
+
+3. Install dependencies:
+   ```bash
+   uv sync --extra dev
+   ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run with coverage
-pytest --cov=gitrack --cov-report=html
+uv run pytest --cov=gitdo --cov-report=html
 
 # Run specific test file
-pytest tests/test_cli.py
+uv run pytest tests/test_cli.py
+
+# Run tests in watch mode (requires pytest-watch)
+uv run ptw
 ```
 
 ### Code Quality
@@ -85,21 +99,21 @@ This project uses Ruff for linting and formatting:
 
 ```bash
 # Check code
-ruff check .
+uv run ruff check .
 
 # Format code
-ruff format .
+uv run ruff format .
 
 # Check and fix
-ruff check --fix .
+uv run ruff check --fix .
 ```
 
 ### Project Structure
 
 ```
-gitrack/
+gitdo/
 ├── src/
-│   └── gitrack/
+│   └── gitdo/
 │       ├── __init__.py
 │       ├── cli.py          # CLI interface
 │       ├── models.py       # Data models
@@ -113,16 +127,41 @@ gitrack/
 └── README.md
 ```
 
-### Building and Publishing
+### Releasing to PyPI
+
+This project uses GitHub Actions for automated publishing to PyPI. Releases are triggered by pushing version tags.
+
+#### Automated Release (Recommended)
+
+Use the release script to create a new version:
 
 ```bash
-# Build the package
-pip install build
-python -m build
+# Create a new release (e.g., 0.2.0)
+./scripts/release.sh 0.2.0
 
-# Upload to PyPI (requires credentials)
-pip install twine
-twine upload dist/*
+# Push to trigger the release
+git push origin main --tags
+```
+
+The script will:
+1. Update version in `pyproject.toml` and `__init__.py`
+2. Create a git commit
+3. Create a version tag (e.g., `v0.2.0`)
+
+When you push the tag, GitHub Actions will:
+1. Extract version from the tag
+2. Build the package
+3. Publish to PyPI using [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+
+
+#### Manual Build (Testing)
+
+```bash
+# Build the package locally
+uv build
+
+# Check the built package
+ls -la dist/
 ```
 
 ## License

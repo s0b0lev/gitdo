@@ -2,7 +2,7 @@
 
 import json
 
-from gitrack.models import TaskStatus
+from gitdo.models import TaskStatus
 
 
 def test_storage_init(storage):

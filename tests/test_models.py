@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from gitrack.models import Task, TaskStatus
+from gitdo.models import Task, TaskStatus
 
 
 def test_task_creation():

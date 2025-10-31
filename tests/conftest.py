@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from gitrack.storage import Storage
+from gitdo.storage import Storage
 
 
 @pytest.fixture

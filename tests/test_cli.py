@@ -3,7 +3,7 @@
 import pytest
 from click.testing import CliRunner
 
-from gitrack.cli import cli
+from gitdo.cli import cli
 
 
 @pytest.fixture

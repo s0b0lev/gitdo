@@ -1,4 +1,4 @@
-"""CLI interface for GiTrack."""
+"""CLI interface for GitDo."""
 
 import click
 from rich.console import Console
@@ -13,21 +13,21 @@ console = Console()
 @click.group()
 @click.version_option(version=__version__)
 def cli():
-    """GiTrack - Simple CLI tool to plan your work."""
+    """GitDo - Simple CLI tool to plan your work."""
     pass
 
 
 @cli.command()
 def init():
-    """Initialize a new GiTrack project."""
+    """Initialize a new GitDo project."""
     storage = Storage()
     if storage.is_initialized():
-        console.print("[yellow]GiTrack is already initialized in this directory.[/yellow]")
+        console.print("[yellow]GitDo is already initialized in this directory.[/yellow]")
         return
 
     storage.init()
-    console.print("[green]✓[/green] GiTrack initialized successfully!")
-    console.print(f"[dim]Created .gitracker/ folder in {storage.base_path}[/dim]")
+    console.print("[green]✓[/green] GitDo initialized successfully!")
+    console.print(f"[dim]Created .gitdo/ folder in {storage.base_path}[/dim]")
 
 
 @cli.command()
@@ -36,7 +36,7 @@ def add(task: str):
     """Add a new task to your project."""
     storage = Storage()
     if not storage.is_initialized():
-        console.print("[red]Error:[/red] GiTrack is not initialized. Run 'gitrack init' first.")
+        console.print("[red]Error:[/red] GitDo is not initialized. Run 'gitdo init' first.")
         raise click.Abort()
 
     created_task = storage.add_task(task)
@@ -50,7 +50,7 @@ def list(all: bool):
     """List all tasks."""
     storage = Storage()
     if not storage.is_initialized():
-        console.print("[red]Error:[/red] GiTrack is not initialized. Run 'gitrack init' first.")
+        console.print("[red]Error:[/red] GitDo is not initialized. Run 'gitdo init' first.")
         raise click.Abort()
 
     tasks = storage.load_tasks()
@@ -85,7 +85,7 @@ def complete(task_id: str):
     """Mark a task as completed."""
     storage = Storage()
     if not storage.is_initialized():
-        console.print("[red]Error:[/red] GiTrack is not initialized. Run 'gitrack init' first.")
+        console.print("[red]Error:[/red] GitDo is not initialized. Run 'gitdo init' first.")
         raise click.Abort()
 
     if storage.complete_task(task_id):
@@ -101,7 +101,7 @@ def remove(task_id: str):
     """Remove a task from your project."""
     storage = Storage()
     if not storage.is_initialized():
-        console.print("[red]Error:[/red] GiTrack is not initialized. Run 'gitrack init' first.")
+        console.print("[red]Error:[/red] GitDo is not initialized. Run 'gitdo init' first.")
         raise click.Abort()
 
     if storage.remove_task(task_id):

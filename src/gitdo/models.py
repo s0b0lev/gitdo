@@ -1,4 +1,4 @@
-"""Data models for GiTrack."""
+"""Data models for GitDo."""
 
 from dataclasses import dataclass, field
 from datetime import datetime

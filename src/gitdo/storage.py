@@ -1,4 +1,4 @@
-"""Storage handling for GiTrack."""
+"""Storage handling for GitDo."""
 
 import json
 from pathlib import Path
@@ -8,7 +8,7 @@ from .models import Task
 
 
 class Storage:
-    """Handle task storage in .gitracker/ folder."""
+    """Handle task storage in .gitdo/ folder."""
 
     def __init__(self, base_path: Path | None = None):
         """Initialize storage.
@@ -17,11 +17,11 @@ class Storage:
             base_path: Base path for storage. Defaults to current directory.
         """
         self.base_path = base_path or Path.cwd()
-        self.storage_dir = self.base_path / ".gitracker"
+        self.storage_dir = self.base_path / ".gitdo"
         self.tasks_file = self.storage_dir / "tasks.json"
 
     def init(self) -> None:
-        """Initialize .gitracker folder and files."""
+        """Initialize .gitdo folder and files."""
         self.storage_dir.mkdir(exist_ok=True)
         if not self.tasks_file.exists():
             self._save_tasks([])
