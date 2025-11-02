@@ -2,7 +2,6 @@
 
 import json
 import os
-from pathlib import Path
 
 from gitdo.models import TaskStatus
 from gitdo.storage import Storage
