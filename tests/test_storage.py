@@ -1,8 +1,11 @@
 """Tests for storage functionality."""
 
 import json
+import os
+from pathlib import Path
 
 from gitdo.models import TaskStatus
+from gitdo.storage import Storage
 
 
 def test_storage_init(storage):
@@ -113,3 +116,95 @@ def test_tasks_json_format(initialized_storage):
     assert len(data) == 1
     assert data[0]["id"] == task.id
     assert data[0]["title"] == "Test task"
+
+
+def test_find_gitdo_root_in_current_dir(temp_dir):
+    """Test finding .gitdo/ in current directory."""
+    gitdo_dir = temp_dir / ".gitdo"
+    gitdo_dir.mkdir()
+
+    found_root = Storage._find_gitdo_root(temp_dir)
+    assert found_root == temp_dir.resolve()
+
+
+def test_find_gitdo_root_in_parent_dir(temp_dir):
+    """Test finding .gitdo/ in parent directory."""
+    gitdo_dir = temp_dir / ".gitdo"
+    gitdo_dir.mkdir()
+
+    # Create a subdirectory
+    subdir = temp_dir / "subdir"
+    subdir.mkdir()
+
+    found_root = Storage._find_gitdo_root(subdir)
+    assert found_root == temp_dir.resolve()
+
+
+def test_find_gitdo_root_multiple_levels_up(temp_dir):
+    """Test finding .gitdo/ multiple levels up the directory tree."""
+    gitdo_dir = temp_dir / ".gitdo"
+    gitdo_dir.mkdir()
+
+    # Create nested subdirectories
+    deep_dir = temp_dir / "level1" / "level2" / "level3"
+    deep_dir.mkdir(parents=True)
+
+    found_root = Storage._find_gitdo_root(deep_dir)
+    assert found_root == temp_dir.resolve()
+
+
+def test_find_gitdo_root_not_found(temp_dir):
+    """Test when .gitdo/ is not found anywhere."""
+    # Don't create .gitdo/ folder
+    found_root = Storage._find_gitdo_root(temp_dir)
+    assert found_root is None
+
+
+def test_storage_uses_walk_up_logic(temp_dir):
+    """Test that Storage initialization uses walk-up logic."""
+    # Create .gitdo/ in parent directory
+    gitdo_dir = temp_dir / ".gitdo"
+    gitdo_dir.mkdir()
+    (gitdo_dir / "tasks.json").write_text("[]")
+
+    # Create a subdirectory and change to it
+    subdir = temp_dir / "subdir"
+    subdir.mkdir()
+
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(subdir)
+        # Create storage without base_path - should find parent's .gitdo/
+        storage = Storage()
+        assert storage.base_path == temp_dir.resolve()
+        assert storage.storage_dir == gitdo_dir.resolve()
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_storage_falls_back_to_cwd_when_not_found(temp_dir):
+    """Test that Storage falls back to current directory when .gitdo/ not found."""
+    # Don't create .gitdo/ folder anywhere
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(temp_dir)
+        storage = Storage()
+        assert storage.base_path == temp_dir.resolve()
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_storage_explicit_base_path_skips_walk_up(temp_dir):
+    """Test that explicit base_path parameter skips walk-up logic."""
+    # Create .gitdo/ in one directory
+    gitdo_dir = temp_dir / ".gitdo"
+    gitdo_dir.mkdir()
+
+    # Create another directory without .gitdo/
+    other_dir = temp_dir / "other"
+    other_dir.mkdir()
+
+    # Explicitly set base_path - should not use walk-up logic
+    storage = Storage(base_path=other_dir)
+    assert storage.base_path == other_dir
+    assert storage.storage_dir == other_dir / ".gitdo"

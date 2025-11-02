@@ -14,11 +14,40 @@ class Storage:
         """Initialize storage.
 
         Args:
-            base_path: Base path for storage. Defaults to current directory.
+            base_path: Base path for storage. If None, searches for .gitdo/
+                      by walking up from current directory.
         """
-        self.base_path = base_path or Path.cwd()
+        if base_path is None:
+            self.base_path = self._find_gitdo_root() or Path.cwd()
+        else:
+            self.base_path = base_path
         self.storage_dir = self.base_path / ".gitdo"
         self.tasks_file = self.storage_dir / "tasks.json"
+
+    @staticmethod
+    def _find_gitdo_root(start_path: Path | None = None) -> Path | None:
+        """Find .gitdo/ folder by walking up directory tree.
+
+        Args:
+            start_path: Starting directory. Defaults to current directory.
+
+        Returns:
+            Path containing .gitdo/ folder, or None if not found.
+        """
+        current = start_path or Path.cwd()
+        current = current.resolve()
+
+        # Walk up the directory tree until we find .gitdo or reach root
+        while True:
+            gitdo_path = current / ".gitdo"
+            if gitdo_path.exists() and gitdo_path.is_dir():
+                return current
+
+            parent = current.parent
+            # Check if we've reached the filesystem root
+            if parent == current:
+                return None
+            current = parent
 
     def init(self) -> None:
         """Initialize .gitdo folder and files."""
