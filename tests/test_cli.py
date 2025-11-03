@@ -145,3 +145,161 @@ def test_list_all_flag(runner):
         result = runner.invoke(cli, ["list", "--all"])
         assert "Test task" in result.output
         assert "completed" in result.output.lower()
+
+
+def test_import_md_basic(runner, tmp_path):
+    """Test import-md command with basic markdown file."""
+    md_file = tmp_path / "tasks.md"
+    md_file.write_text("""
+# Tasks
+
+- [ ] Task 1
+- [x] Task 2
+- [ ] Task 3
+""")
+
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"])
+        result = runner.invoke(cli, ["import-md", str(md_file)])
+        assert result.exit_code == 0
+        assert "Imported 3 task(s)" in result.output
+        assert "Task 1" in result.output
+        assert "Task 2" in result.output
+        assert "Task 3" in result.output
+
+
+def test_import_md_without_init(runner, tmp_path):
+    """Test import-md command without initialization."""
+    md_file = tmp_path / "tasks.md"
+    md_file.write_text("- [ ] Task 1")
+
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["import-md", str(md_file)])
+        assert result.exit_code != 0
+        assert "not initialized" in result.output.lower()
+
+
+def test_import_md_file_not_found(runner):
+    """Test import-md command with non-existent file."""
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"])
+        result = runner.invoke(cli, ["import-md", "/non/existent/file.md"])
+        assert result.exit_code != 0
+
+
+def test_import_md_no_checkboxes(runner, tmp_path):
+    """Test import-md command with file without checkboxes."""
+    md_file = tmp_path / "no_tasks.md"
+    md_file.write_text("""
+# Just some text
+
+No checkbox items here.
+""")
+
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"])
+        result = runner.invoke(cli, ["import-md", str(md_file)])
+        assert result.exit_code == 0
+        assert "No checkbox items found" in result.output
+
+
+def test_import_md_skip_duplicates(runner, tmp_path):
+    """Test import-md command with --skip-duplicates flag."""
+    md_file = tmp_path / "tasks.md"
+    md_file.write_text("""
+- [ ] Duplicate task
+- [ ] Unique task
+""")
+
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"])
+        # Add a task manually first
+        runner.invoke(cli, ["add", "Duplicate task"])
+
+        # Import with skip-duplicates
+        result = runner.invoke(cli, ["import-md", str(md_file), "--skip-duplicates"])
+        assert result.exit_code == 0
+        assert "Imported 1 task(s)" in result.output
+        assert "Skipped 1 duplicate(s)" in result.output
+
+
+def test_import_md_dry_run(runner, tmp_path):
+    """Test import-md command with --dry-run flag."""
+    md_file = tmp_path / "tasks.md"
+    md_file.write_text("""
+- [ ] Task 1
+- [ ] Task 2
+""")
+
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"])
+        result = runner.invoke(cli, ["import-md", str(md_file), "--dry-run"])
+        assert result.exit_code == 0
+        assert "Task 1" in result.output
+        assert "Task 2" in result.output
+        assert "Dry run - no tasks were imported" in result.output
+
+        # Verify tasks were not actually imported
+        list_result = runner.invoke(cli, ["list"])
+        assert "No tasks found" in list_result.output
+
+
+def test_import_md_complex_file(runner, tmp_path):
+    """Test import-md with complex markdown file."""
+    md_file = tmp_path / "complex.md"
+    md_file.write_text("""
+# Project Tasks
+
+## Phase 1
+- [x] Setup project
+- [ ] Write docs
+
+## Phase 2
+- [ ] Implement feature A
+  - [ ] Sub-task 1
+  - [ ] Sub-task 2
+- [ ] Implement feature B
+
+Some random text here.
+
+## Phase 3
+- [ ] Deploy to production
+""")
+
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"])
+        result = runner.invoke(cli, ["import-md", str(md_file)])
+        assert result.exit_code == 0
+        assert "Imported 7 task(s)" in result.output
+
+        # Verify tasks are in storage
+        list_result = runner.invoke(cli, ["list", "--all"])
+        assert "Setup project" in list_result.output
+        assert "Write docs" in list_result.output
+        assert "Deploy to production" in list_result.output
+
+
+def test_import_md_preserves_status(runner, tmp_path):
+    """Test that import-md preserves task status (completed vs pending)."""
+    md_file = tmp_path / "tasks.md"
+    md_file.write_text("""
+- [ ] Pending task
+- [x] Completed task
+- [X] Another completed task
+""")
+
+    with runner.isolated_filesystem():
+        runner.invoke(cli, ["init"])
+        runner.invoke(cli, ["import-md", str(md_file)])
+
+        # Check that completed tasks show up in --all but not in default list
+        default_list = runner.invoke(cli, ["list"])
+        all_list = runner.invoke(cli, ["list", "--all"])
+
+        assert "Pending task" in default_list.output
+        assert "Completed task" not in default_list.output
+        assert "Another completed task" not in default_list.output
+
+        assert "Pending task" in all_list.output
+        assert "Completed task" in all_list.output
+        assert "Another completed task" in all_list.output

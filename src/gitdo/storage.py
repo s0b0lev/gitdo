@@ -26,13 +26,15 @@ class Storage:
 
     @staticmethod
     def _find_gitdo_root(start_path: Path | None = None) -> Path | None:
-        """Find .gitdo/ folder by walking up directory tree.
+        """
+        Find .gitdo/ folder by walking up directory tree.
 
         Args:
             start_path: Starting directory. Defaults to current directory.
 
         Returns:
             Path containing .gitdo/ folder, or None if not found.
+
         """
         current = start_path or Path.cwd()
         current = current.resolve()
@@ -135,6 +137,39 @@ class Storage:
                 self._save_tasks(tasks)
                 return True
         return False
+
+    def import_tasks(
+        self,
+        tasks: list[Task],
+        *,
+        skip_duplicates: bool = False,
+    ) -> tuple[int, int]:
+        """Import multiple tasks at once.
+
+        Args:
+            tasks: List of tasks to import
+            skip_duplicates: If True, skip tasks with duplicate titles
+
+        Returns:
+            Tuple of (imported_count, skipped_count)
+        """
+        existing_tasks = self.load_tasks()
+        existing_titles = {task.title for task in existing_tasks} if skip_duplicates else set()
+
+        imported_count = 0
+        skipped_count = 0
+
+        for task in tasks:
+            if skip_duplicates and task.title in existing_titles:
+                skipped_count += 1
+                continue
+
+            existing_tasks.append(task)
+            existing_titles.add(task.title)
+            imported_count += 1
+
+        self._save_tasks(existing_tasks)
+        return imported_count, skipped_count
 
     def _save_tasks(self, tasks: list[Task]) -> None:
         """Save tasks to storage.
