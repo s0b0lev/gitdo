@@ -303,3 +303,123 @@ def test_import_md_preserves_status(runner, tmp_path):
         assert "Pending task" in all_list.output
         assert "Completed task" in all_list.output
         assert "Another completed task" in all_list.output
+
+
+def test_nested_init_parent_and_child(runner, tmp_path):
+    """Test that nested gitdo projects can be initialized independently."""
+    import os
+
+    # Initialize parent directory
+    os.chdir(tmp_path)
+    parent_result = runner.invoke(cli, ["init"])
+    assert parent_result.exit_code == 0
+    assert "initialized successfully" in parent_result.output.lower()
+    assert (tmp_path / ".gitdo").exists()
+    assert (tmp_path / ".gitdo" / "tasks.json").exists()
+
+    # Create and initialize child directory
+    child_dir = tmp_path / "child"
+    child_dir.mkdir()
+    os.chdir(child_dir)
+    child_result = runner.invoke(cli, ["init"])
+    assert child_result.exit_code == 0
+    assert "initialized successfully" in child_result.output.lower()
+    assert (child_dir / ".gitdo").exists()
+    assert (child_dir / ".gitdo" / "tasks.json").exists()
+
+
+def test_nested_projects_have_independent_tasks(runner, tmp_path):
+    """Test that nested projects maintain independent task lists."""
+    import os
+
+    # Initialize and add task in parent
+    os.chdir(tmp_path)
+    runner.invoke(cli, ["init"])
+    parent_add = runner.invoke(cli, ["add", "Parent task"])
+    assert parent_add.exit_code == 0
+
+    # Initialize and add task in child
+    child_dir = tmp_path / "child"
+    child_dir.mkdir()
+    os.chdir(child_dir)
+    runner.invoke(cli, ["init"])
+    child_add = runner.invoke(cli, ["add", "Child task"])
+    assert child_add.exit_code == 0
+
+    # Verify parent only has parent task
+    os.chdir(tmp_path)
+    parent_list = runner.invoke(cli, ["list"])
+    assert "Parent task" in parent_list.output
+    assert "Child task" not in parent_list.output
+
+    # Verify child only has child task
+    os.chdir(child_dir)
+    child_list = runner.invoke(cli, ["list"])
+    assert "Child task" in child_list.output
+    assert "Parent task" not in child_list.output
+
+
+def test_init_does_not_check_parent_directories(runner, tmp_path):
+    """Test that init command only checks current directory, not parents."""
+    import os
+
+    # Initialize parent
+    os.chdir(tmp_path)
+    runner.invoke(cli, ["init"])
+
+    # Create subdirectory and init there (should succeed)
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+    os.chdir(subdir)
+    result = runner.invoke(cli, ["init"])
+    assert result.exit_code == 0
+    assert "initialized successfully" in result.output.lower()
+    assert (subdir / ".gitdo").exists()
+
+
+def test_nested_init_deeply_nested(runner, tmp_path):
+    """Test nested initialization works at multiple levels."""
+    import os
+
+    # Create directory structure: root -> level1 -> level2
+    level1 = tmp_path / "level1"
+    level2 = level1 / "level2"
+    level1.mkdir()
+    level2.mkdir()
+
+    # Initialize at each level
+    os.chdir(tmp_path)
+    runner.invoke(cli, ["init"])
+
+    os.chdir(level1)
+    result1 = runner.invoke(cli, ["init"])
+    assert result1.exit_code == 0
+
+    os.chdir(level2)
+    result2 = runner.invoke(cli, ["init"])
+    assert result2.exit_code == 0
+
+    # Verify all three .gitdo directories exist
+    assert (tmp_path / ".gitdo").exists()
+    assert (level1 / ".gitdo").exists()
+    assert (level2 / ".gitdo").exists()
+
+
+def test_commands_use_walkup_in_nested_projects(runner, tmp_path):
+    """Test that commands still use walk-up logic within a project."""
+    import os
+
+    # Initialize parent
+    os.chdir(tmp_path)
+    runner.invoke(cli, ["init"])
+    runner.invoke(cli, ["add", "Root task"])
+
+    # Create subdirectory WITHOUT init
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+    os.chdir(subdir)
+
+    # List should find parent's tasks (walk-up logic)
+    result = runner.invoke(cli, ["list"])
+    assert result.exit_code == 0
+    assert "Root task" in result.output

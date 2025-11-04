@@ -23,7 +23,8 @@ def cli():
 @cli.command()
 def init():
     """Initialize a new GitDo project."""
-    storage = Storage()
+    # Use current directory explicitly to allow nested projects
+    storage = Storage(base_path=Path.cwd())
     if storage.is_initialized():
         console.print("[yellow]GitDo is already initialized in this directory.[/yellow]")
         return

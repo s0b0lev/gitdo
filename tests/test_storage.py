@@ -207,3 +207,159 @@ def test_storage_explicit_base_path_skips_walk_up(temp_dir):
     storage = Storage(base_path=other_dir)
     assert storage.base_path == other_dir
     assert storage.storage_dir == other_dir / ".gitdo"
+
+
+def test_nested_projects_independent_storage(temp_dir):
+    """Test that nested projects have independent storage."""
+    # Create parent project
+    parent_storage = Storage(base_path=temp_dir)
+    parent_storage.init()
+    parent_task = parent_storage.add_task("Parent task")
+
+    # Create child project
+    child_dir = temp_dir / "child"
+    child_dir.mkdir()
+    child_storage = Storage(base_path=child_dir)
+    child_storage.init()
+    child_task = child_storage.add_task("Child task")
+
+    # Verify parent only has parent task
+    parent_tasks = parent_storage.load_tasks()
+    assert len(parent_tasks) == 1
+    assert parent_tasks[0].id == parent_task.id
+    assert parent_tasks[0].title == "Parent task"
+
+    # Verify child only has child task
+    child_tasks = child_storage.load_tasks()
+    assert len(child_tasks) == 1
+    assert child_tasks[0].id == child_task.id
+    assert child_tasks[0].title == "Child task"
+
+    # Verify storage files are separate
+    assert (temp_dir / ".gitdo" / "tasks.json").exists()
+    assert (child_dir / ".gitdo" / "tasks.json").exists()
+
+
+def test_nested_init_allows_multiple_gitdo_folders(temp_dir):
+    """Test that multiple .gitdo folders can exist in nested directories."""
+    # Initialize parent
+    parent_storage = Storage(base_path=temp_dir)
+    parent_storage.init()
+    assert parent_storage.is_initialized()
+
+    # Initialize child with explicit base_path
+    child_dir = temp_dir / "subdir"
+    child_dir.mkdir()
+    child_storage = Storage(base_path=child_dir)
+
+    # Child should not be initialized yet
+    assert not child_storage.is_initialized()
+
+    # Initialize child
+    child_storage.init()
+    assert child_storage.is_initialized()
+
+    # Both should be initialized independently
+    assert (temp_dir / ".gitdo").exists()
+    assert (child_dir / ".gitdo").exists()
+
+
+def test_nested_storage_walk_up_stops_at_first_gitdo(temp_dir):
+    """Test that walk-up stops at the nearest .gitdo folder."""
+    # Create parent project
+    parent_gitdo = temp_dir / ".gitdo"
+    parent_gitdo.mkdir()
+    (parent_gitdo / "tasks.json").write_text('[{"id": "parent-task", "title": "Parent"}]')
+
+    # Create nested child project
+    child_dir = temp_dir / "child"
+    child_dir.mkdir()
+    child_gitdo = child_dir / ".gitdo"
+    child_gitdo.mkdir()
+    (child_gitdo / "tasks.json").write_text('[{"id": "child-task", "title": "Child"}]')
+
+    # Create subdirectory under child
+    subdir = child_dir / "subdir"
+    subdir.mkdir()
+
+    # Storage from subdir should find child's .gitdo, not parent's
+    found_root = Storage._find_gitdo_root(subdir)
+    assert found_root == child_dir.resolve()
+
+    # Change to subdir and create storage without base_path
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(subdir)
+        storage = Storage()
+        assert storage.base_path == child_dir.resolve()
+        assert storage.storage_dir == child_gitdo.resolve()
+    finally:
+        os.chdir(original_cwd)
+
+
+def test_deeply_nested_projects(temp_dir):
+    """Test multiple levels of nested projects."""
+    # Create directory structure
+    level1 = temp_dir / "level1"
+    level2 = level1 / "level2"
+    level3 = level2 / "level3"
+    level1.mkdir()
+    level2.mkdir()
+    level3.mkdir()
+
+    # Initialize at each level
+    storage_root = Storage(base_path=temp_dir)
+    storage_root.init()
+
+    storage_l1 = Storage(base_path=level1)
+    storage_l1.init()
+
+    storage_l2 = Storage(base_path=level2)
+    storage_l2.init()
+
+    storage_l3 = Storage(base_path=level3)
+    storage_l3.init()
+
+    # Verify all are initialized independently
+    assert (temp_dir / ".gitdo").exists()
+    assert (level1 / ".gitdo").exists()
+    assert (level2 / ".gitdo").exists()
+    assert (level3 / ".gitdo").exists()
+
+    # Verify walk-up finds the nearest .gitdo
+    found_l3 = Storage._find_gitdo_root(level3)
+    assert found_l3 == level3.resolve()
+
+    found_l2 = Storage._find_gitdo_root(level2)
+    assert found_l2 == level2.resolve()
+
+
+def test_nested_projects_task_isolation(temp_dir):
+    """Test that task operations are isolated between nested projects."""
+    # Create and populate parent project
+    parent_storage = Storage(base_path=temp_dir)
+    parent_storage.init()
+    parent_task = parent_storage.add_task("Parent task")
+    parent_storage.complete_task(parent_task.id)
+
+    # Create and populate child project
+    child_dir = temp_dir / "child"
+    child_dir.mkdir()
+    child_storage = Storage(base_path=child_dir)
+    child_storage.init()
+    child_storage.add_task("Child task")
+
+    # Verify parent has completed task
+    parent_tasks = parent_storage.load_tasks()
+    assert len(parent_tasks) == 1
+    assert parent_tasks[0].status == TaskStatus.COMPLETED
+
+    # Verify child has pending task
+    child_tasks = child_storage.load_tasks()
+    assert len(child_tasks) == 1
+    assert child_tasks[0].status == TaskStatus.PENDING
+
+    # Removing from parent shouldn't affect child
+    parent_storage.remove_task(parent_task.id)
+    assert len(parent_storage.load_tasks()) == 0
+    assert len(child_storage.load_tasks()) == 1
