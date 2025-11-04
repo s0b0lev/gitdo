@@ -9,6 +9,7 @@ class TaskStatus(str, Enum):
     """Task status enumeration."""
 
     PENDING = "pending"
+    INPROGRESS = "inprogress"
     COMPLETED = "completed"
 
 
@@ -21,6 +22,10 @@ class Task:
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = field(default_factory=datetime.now)
     completed_at: datetime | None = None
+
+    def start(self) -> None:
+        """Mark task as in progress."""
+        self.status = TaskStatus.INPROGRESS
 
     def complete(self) -> None:
         """Mark task as completed."""

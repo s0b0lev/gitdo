@@ -104,6 +104,23 @@ class Storage:
                 return task
         return None
 
+    def start_task(self, task_id: str) -> bool:
+        """Mark task as in progress.
+
+        Args:
+            task_id: Task ID
+
+        Returns:
+            True if task was found and started, False otherwise
+        """
+        tasks = self.load_tasks()
+        for task in tasks:
+            if task.id.startswith(task_id):
+                task.start()
+                self._save_tasks(tasks)
+                return True
+        return False
+
     def complete_task(self, task_id: str) -> bool:
         """Mark task as completed.
 

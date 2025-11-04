@@ -48,8 +48,14 @@ def add(task: str):
 
 
 @cli.command()
-@click.option("--all", "-a", is_flag=True, help="Show all tasks including completed")
-def list(all: bool):
+@click.option(
+    "--status",
+    "-s",
+    type=click.Choice(["pending", "inprogress", "completed"], case_sensitive=False),
+    help="Filter tasks by status",
+)
+@click.option("--all", "-a", is_flag=True, help="Show all tasks (overrides --status)")
+def list(status: str | None, all: bool):
     """List all tasks."""
     storage = Storage()
     if not storage.is_initialized():
@@ -57,12 +63,22 @@ def list(all: bool):
         raise click.Abort()
 
     tasks = storage.load_tasks()
+
+    # Filter by status if specified
     if not all:
-        tasks = [t for t in tasks if t.status.value == "pending"]
+        if status:
+            tasks = [t for t in tasks if t.status.value == status.lower()]
+        else:
+            # Default: show pending and inprogress tasks
+            tasks = [t for t in tasks if t.status.value in ["pending", "inprogress"]]
 
     if not tasks:
         console.print("[yellow]No tasks found.[/yellow]")
         return
+
+    # Sort tasks: inprogress first, then pending, then completed
+    status_priority = {"inprogress": 0, "pending": 1, "completed": 2}
+    tasks = sorted(tasks, key=lambda t: status_priority.get(t.status.value, 3))
 
     table = Table(show_header=True, header_style="bold magenta")
     table.add_column("ID", style="dim", width=10)
@@ -71,7 +87,14 @@ def list(all: bool):
     table.add_column("Created", width=20)
 
     for task in tasks:
-        status_color = "green" if task.status.value == "completed" else "yellow"
+        # Color coding for different statuses
+        if task.status.value == "completed":
+            status_color = "green"
+        elif task.status.value == "inprogress":
+            status_color = "blue"
+        else:
+            status_color = "yellow"
+
         table.add_row(
             task.id[:8],
             task.title,
@@ -80,6 +103,22 @@ def list(all: bool):
         )
 
     console.print(table)
+
+
+@cli.command()
+@click.argument("task_id")
+def start(task_id: str):
+    """Mark a task as in progress."""
+    storage = Storage()
+    if not storage.is_initialized():
+        console.print("[red]Error:[/red] GitDo is not initialized. Run 'gitdo init' first.")
+        raise click.Abort()
+
+    if storage.start_task(task_id):
+        console.print(f"[green]✓[/green] Task {task_id} marked as in progress!")
+    else:
+        console.print(f"[red]Error:[/red] Task {task_id} not found.")
+        raise click.Abort()
 
 
 @cli.command()
@@ -163,7 +202,14 @@ def import_md(
     table.add_column("Status", width=12)
 
     for task in tasks:
-        status_color = "green" if task.status.value == "completed" else "yellow"
+        # Color coding for different statuses
+        if task.status.value == "completed":
+            status_color = "green"
+        elif task.status.value == "inprogress":
+            status_color = "blue"
+        else:
+            status_color = "yellow"
+
         table.add_row(
             task.title,
             f"[{status_color}]{task.status.value}[/{status_color}]",
