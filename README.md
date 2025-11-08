@@ -22,9 +22,22 @@ $ gitdo [command] [options]
 
 - `init`: Initialize a new GitDo project
 - `add <task>`: Add a new task to your project
-- `list`: List all tasks (use `--all` to show completed tasks)
+- `list`: List tasks (by default shows pending and in-progress tasks)
+  - `--status/-s <status>`: Filter by status (pending, inprogress, completed)
+  - `--all/-a`: Show all tasks regardless of status
+- `start <task_id>`: Mark a task as in progress
 - `complete <task_id>`: Mark a task as completed
 - `remove <task_id>`: Remove a task from your project
+- `import-md <file_path>`: Import tasks from a markdown file
+  - `--skip-duplicates`: Skip tasks with duplicate titles
+  - `--dry-run`: Preview tasks without importing
+
+### Task Statuses
+
+Tasks can have one of three statuses:
+- `pending`: Task has been created but not started
+- `inprogress`: Task is currently being worked on
+- `completed`: Task has been finished
 
 ## Example
 
@@ -42,17 +55,40 @@ $ gitdo add "Write unit tests"
 ✓ Added task: Write unit tests
 ID: e5f6g7h8
 
-# List all pending tasks
+$ gitdo add "Update documentation"
+✓ Added task: Update documentation
+ID: i9j0k1l2
+
+# List all pending and in-progress tasks (default)
 $ gitdo list
+
+# Start working on a task
+$ gitdo start a1b2
+✓ Task a1b2 marked as in progress!
+
+# List only in-progress tasks
+$ gitdo list --status inprogress
 
 # Complete a task (you can use just the first few characters of the ID)
 $ gitdo complete a1b2
+✓ Task a1b2 marked as completed!
 
 # List all tasks including completed ones
 $ gitdo list --all
 
+# List only completed tasks
+$ gitdo list --status completed
+
 # Remove a task
 $ gitdo remove e5f6
+✓ Task e5f6 removed!
+
+# Import tasks from a markdown file
+$ gitdo import-md tasks.md
+✓ Imported 5 task(s)
+
+# Preview tasks before importing
+$ gitdo import-md tasks.md --dry-run
 ```
 
 ## Development
